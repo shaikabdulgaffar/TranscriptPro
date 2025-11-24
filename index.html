@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <title>TranscriptPro</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" href="data:,">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full bg-bg text-text transition-colors">
+  <!-- Top Bar -->
+  <header class="w-full border-b border-divider bg-layer1/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="text-xl font-bold tracking-wide flex items-center gap-2">
+        <span class="bg-primary/10 text-primary px-2 py-1 rounded"><i class="fa-solid fa-file-lines"></i> TranscriptPro</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="themeToggle" class="px-3 py-2 text-sm rounded border border-divider hover:bg-layer2 transition" aria-label="Toggle theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="historyToggle" class="px-3 py-2 text-sm rounded border border-divider hover:bg-layer2 transition" aria-label="Toggle history" title="History">
+          <i class="fa-solid fa-history"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- History Sidebar -->
+  <div id="historySidebar" class="fixed top-0 right-0 w-80 h-full bg-layer1 border-l border-divider shadow-xl transform translate-x-full transition-transform duration-300 z-50">
+    <div class="flex flex-col h-full">
+      <div class="flex items-center justify-between p-4 border-b border-divider">
+        <h2 class="font-bold text-lg flex items-center gap-2">
+          <i class="fa-solid fa-history text-accent"></i>
+          Transcript History
+        </h2>
+        <button id="closeHistory" class="p-2 hover:bg-layer2 rounded transition">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4">
+        <div id="historyList" class="space-y-3">
+          <div class="text-center text-text/60 py-8">
+            <i class="fa-solid fa-folder-open text-3xl mb-2 opacity-50"></i>
+            <p>No transcripts yet</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 border-t border-divider">
+        <button id="clearHistory" class="w-full btn-subtle text-danger">
+          <i class="fa-solid fa-trash"></i>
+          Clear History
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Overlay -->
+  <div id="historyOverlay" class="fixed inset-0 bg-black/20 backdrop-blur-sm hidden z-40"></div>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- Form Row -->
+    <div class="bg-layer1 rounded-lg border border-divider p-4 shadow-sm">
+      <form id="transcriptForm" class="flex flex-col gap-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex-1">
+            <label class="text-xs font-medium uppercase tracking-wide mb-1 block">YouTube Link</label>
+            <input id="videoUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." class="w-full input">
+          </div>
+          <div class="w-full md:w-40">
+            <label class="text-xs font-medium uppercase tracking-wide mb-1 block">Language</label>
+            <select id="langSelect" class="w-full input">
+              <option value="en">English (en)</option>
+              <option value="hi">Hindi (hi)</option>
+              <option value="es">Spanish (es)</option>
+              <option value="fr">French (fr)</option>
+              <option value="de">German (de)</option>
+            </select>
+          </div>
+
+          <!-- Fixed timestamps alignment -->
+          <div class="w-full md:w-40 flex items-end">
+            <div class="input flex items-center gap-3 cursor-pointer">
+              <input id="timestampsChk" type="checkbox" class="accent-primary scale-110" checked>
+              <label for="timestampsChk" class="text-sm m-0 cursor-pointer flex items-center gap-1">
+                <i class="fa-regular fa-clock"></i> TimeStamps
+              </label>
+            </div>
+          </div>
+
+          <!-- Fixed button alignment -->
+          <div class="flex items-end gap-2 md:w-auto w-full md:justify-start justify-center">
+            <button type="submit" id="fetchBtn" class="btn-primary flex justify-center items-center gap-2 whitespace-nowrap h-10">
+              <i class="fa-solid fa-download"></i>
+              <span id="fetchBtnText">Get Transcript</span>
+              <span id="loadingSpinner" class="hidden animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+            </button>
+            <button type="button" id="clearBtn" class="btn-subtle h-10 w-10 flex items-center justify-center flex-shrink-0" title="Reset fields" aria-label="Reset">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+          </div>
+        </div>
+        <div id="errorBox" class="hidden text-sm text-red-500 bg-red-500/10 border border-red-500/40 rounded p-2"></div>
+      </form>
+    </div>
+
+    <!-- Video metadata (thumbnail, title, channel) -->
+    <div id="videoMeta" class="hidden bg-layer1 rounded-lg border border-divider p-4 flex items-center gap-4 justify-between">
+      <div class="flex items-center gap-4 min-w-0">
+        <img id="videoThumb" src="" alt="Thumbnail" class="w-28 h-16 object-cover rounded hidden">
+        <div class="flex-1 min-w-0">
+          <div id="videoTitle" class="font-semibold text-sm truncate"></div>
+          <div id="videoChannel" class="text-xs text-text/60 mt-1 truncate"></div>
+        </div>
+      </div>
+      <div class="flex-shrink-0">
+        <a id="openLinkBtn" href="#" target="_blank" rel="noopener" class="btn-subtle hidden" title="Open video in YouTube">
+          <i class="fa-solid fa-up-right-from-square"></i>
+          <span class="hidden md:inline">Open</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Transcript Panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title flex items-center gap-2"><i class="fa-solid fa-align-left"></i> Transcript</h2>
+          <div class="flex flex-wrap gap-2">
+            <button id="copyTranscriptBtn" class="btn-subtle" title="Copy">
+              <i class="fa-regular fa-copy"></i><span class="hidden md:inline">Copy</span>
+            </button>
+            <button id="downloadTranscriptBtn" class="btn-subtle" title="Download">
+              <i class="fa-solid fa-file-arrow-down"></i><span class="hidden md:inline">Download</span>
+            </button>
+            <button id="summarizeBtn" class="btn-accent" title="Summarize">
+              <i class="fa-solid fa-bolt"></i><span class="hidden md:inline">Summarize</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <textarea id="transcriptBox" class="content-box" placeholder="Transcript will appear here..." readonly></textarea>
+        </div>
+      </section>
+
+      <!-- Summary Panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title flex items-center gap-2"><i class="fa-solid fa-list-check"></i> Summary</h2>
+          <div class="w-full md:w-auto flex items-center gap-2 justify-center md:justify-end flex-wrap">
+            <div class="flex items-center gap-2">
+              <label for="maxSentences" class="text-xs font-semibold tracking-wide flex items-center gap-1">
+                <i class="fa-solid fa-scale-balanced text-accent"></i>
+                <span class="hidden sm:inline">Max Sentences</span>
+              </label>
+              <input id="maxSentences" type="number" min="1" max="20" value="8" class="w-20 input h-10 py-0" title="Max sentences in summary">
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="copySummaryBtn" class="btn-subtle h-10" title="Copy summary">
+                <i class="fa-regular fa-copy"></i><span class="hidden md:inline">Copy</span>
+              </button>
+              <button id="downloadSummaryBtn" class="btn-subtle h-10" title="Download summary">
+                <i class="fa-solid fa-file-arrow-down"></i><span class="hidden md:inline">Download</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <textarea id="summaryBox" class="content-box" placeholder="Summary will appear here..." readonly></textarea>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="text-center text-xs py-6 text-text/60">
+    <p>© <span id="year"></span> TranscriptPro. All rights reserved. Made with ❤️</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
